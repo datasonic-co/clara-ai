@@ -1,0 +1,17 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: assistant-frontend
+  namespace: tia-hubble-prd-nat
+spec:
+  host: ai-assistant.pres-prod.ocp-infra-prd-1.mycaas.intrabpce.fr
+  to:
+    kind: Service
+    name: assistant-service
+    weight: 100
+  port:
+    targetPort: 8000
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: None
+  wildcardPolicy: None

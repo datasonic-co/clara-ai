@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assistant-frontENV
+  namespace: tia-hubble-prd-nat
+  labels:
+    app: assistant-frontENV
+spec:
+  replicas: NUM_REPLICAS
+  selector:
+    matchLabels:
+      app: assistant-frontENV
+  template:
+    metadata:
+      labels:
+        app: assistant-frontENV
+        log_type: assistant
+    spec:
+      containers:
+      - name: assistant-front
+        image: openshift.artifactory.mycloud.intranatixis.com/ai-assistant:IMAGE_VER
+        env:
+        - name: AI_RAG_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: assistant-secret
+              key: AI_RAG_ENDPOINT
+        - name: CHAINLIT_HOST
+          valueFrom:
+            secretKeyRef:
+              name: assistant-secret
+              key: CHAINLIT_HOST
+        - name: CHAINLIT_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: assistant-secret
+              key: CHAINLIT_AUTH_SECRET
+        - name: assistant_USER
+          valueFrom:
+            secretKeyRef:
+              name: assistant-secret
+              key: assistant_USER
+        - name: assistant_PWD
+          valueFrom:
+            secretKeyRef:
+              name: assistant-secret
+              key: assistant_PWD
+        resources:
+          limits:
+            cpu: 200m
+            memory: 500Mi
+          requests:
+           cpu: 200m
+           memory: 500Mi

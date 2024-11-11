@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: assistant-db-service
+  namespace: tia-hubble-prd-nat
+spec:
+  selector:
+    app: assistant-db
+  ports:
+    - protocol: TCP
+      port: 27101
+      targetPort: 27101
+  type: ClusterIP

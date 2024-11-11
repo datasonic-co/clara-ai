@@ -1,0 +1,72 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: assistant-mysql
+  namespace: tia-hubble-prd-nat
+  labels:
+    app: assistant-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assistant-db
+  template:
+    metadata:
+      labels:
+        app: assistant-db
+    spec:
+      containers:
+        - name: container
+          image: 'openshift.artifactory.mycloud.intranatixis.com/mysql:8.4.3'
+          ports:
+            - containerPort: 27101
+              protocol: TCP
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: assistant-db-secret
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: assistant-db-secret
+                  key: MYSQL_DATABASE
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: assistant-db-secret
+                  key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: assistant-db-secret
+                  key: MYSQL_USER
+            - name: MYSQL_TCP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: assistant-db-secret
+                  key: MYSQL_TCP_PORT
+          resources:
+            limits:
+              cpu: '2'
+              memory: 4Gi
+            requests:
+              cpu: '2'
+              memory: 4Gi
+          terminationMessagePath: /dev/termination-log
+          imagePullPolicy: Always
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-storage
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: assistant-db-pvc
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
