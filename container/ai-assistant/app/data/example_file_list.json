@@ -1,0 +1,238 @@
+{
+    "data": [
+        {
+            "id": "file-Msawal15plXBeomrjONwRMG7",
+            "bytes": 830191,
+            "created_at": 1731426926,
+            "filename": "connections_data.json",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-sKoox11lEPGg7IxVvi37TeVI",
+            "bytes": 123,
+            "created_at": 1731426925,
+            "filename": "registration_data.json",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-JmHxX4AjEJ6Xits6zgnctceb",
+            "bytes": 1669,
+            "created_at": 1731426925,
+            "filename": "skills_data.json",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-RE1Bg6Fh5JofmWK5Q2rq9MG1",
+            "bytes": 4637,
+            "created_at": 1731426925,
+            "filename": "positions_data.json",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-7sFrvf30CwkRnGsnjk30KW8E",
+            "bytes": 336,
+            "created_at": 1731426925,
+            "filename": "languages_data.json",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-xWbSDrOGrgRgRRwGssHHjXJ7",
+            "bytes": 1065,
+            "created_at": 1731426925,
+            "filename": "member_hashtag_data.json",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-zNptPqGFD64lE5mzGLZwPJds",
+            "bytes": 1164,
+            "created_at": 1731426925,
+            "filename": "education_data.json",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-pdWUnu359w6yz9d7jRRnhPZi",
+            "bytes": 830191,
+            "created_at": 1731425815,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-fIdl0JMvkmQ6cxjHS3Y3jvjh",
+            "bytes": 123,
+            "created_at": 1731425814,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-iBcfw2twaqy1EsvTWaNrqmah",
+            "bytes": 1164,
+            "created_at": 1731425814,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-rBQsHhlKzhPnWhcCpQeSdVmm",
+            "bytes": 4637,
+            "created_at": 1731425814,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-GbDw6mcf6VOvIpxGfJbLHq0e",
+            "bytes": 1065,
+            "created_at": 1731425814,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-IUTXlDzj3C4yMtWqqPY7QP7m",
+            "bytes": 1669,
+            "created_at": 1731425814,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-wWUcBq9fA0F7g0iArNbpLSHB",
+            "bytes": 336,
+            "created_at": 1731425814,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-iRdjqU6u5Yl9bPnMW4c8ULi6",
+            "bytes": 830191,
+            "created_at": 1731425794,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-5SidrzYCuRKqmvqezq4LfHX4",
+            "bytes": 123,
+            "created_at": 1731425794,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-rT55JnaQ6ZprRog282zw84Dc",
+            "bytes": 1669,
+            "created_at": 1731425793,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-EcQG7vo8DPZSoI8sWvx9gnaI",
+            "bytes": 1065,
+            "created_at": 1731425793,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-NKbpJRBhI8DuYiPmwbfcdfDA",
+            "bytes": 4637,
+            "created_at": 1731425793,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-vdEqo95icoGXuIgaVE3e0hc0",
+            "bytes": 1164,
+            "created_at": 1731425793,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-WIsbaPj2a9w1EDA7mbXARiud",
+            "bytes": 336,
+            "created_at": 1731425793,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-OAwyD0ka2sXvPgTXdvka1Gxz",
+            "bytes": 4637,
+            "created_at": 1731421159,
+            "filename": "positions_data.json",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        },
+        {
+            "id": "file-oxhgOKQHFGN6QwcAGXHznB1A",
+            "bytes": 4637,
+            "created_at": 1731421018,
+            "filename": "upload",
+            "object": "file",
+            "purpose": "assistants",
+            "status": "processed",
+            "status_details": null
+        }
+    ],
+    "object": "list",
+    "has_more": false,
+    "first_id": "file-Msawal15plXBeomrjONwRMG7",
+    "last_id": "file-oxhgOKQHFGN6QwcAGXHznB1A"
+}

@@ -1,32 +1,31 @@
 import chainlit as cl
-from chainlit.input_widget import Select
+from chainlit.input_widget import Select, Switch, Slider, NumberInput, Tags
 import os
-import requests
 import urllib3
 from dotenv import load_dotenv
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List
+from openai import AsyncOpenAI
+import traceback
 
 load_dotenv()
 
 urllib3.disable_warnings()
 
-ASSISTANT_RAG_URL = "https://" + str(os.getenv("ASSISTANT_RAG_ENDPOINT"))
-ASSISTANT_USER = str(os.getenv("ASSISTANT_USER"))
-ASSISTANT_PWD = str(os.getenv("ASSISTANT_PWD"))
+client = AsyncOpenAI(api_key=str(os.environ.get("OPENAI_API_KEY")))
 
 
 @cl.set_chat_profiles
 async def chat_profile(current_user: cl.User):
     profiles = [
         cl.ChatProfile(
-            name="Public",
-            markdown_description="""For General questions about me""",
+            name="Public Profile",
+            markdown_description="""For General questions about Fakher's profile""",
             icon="public/general_user.png",
         ),
         cl.ChatProfile(
-            name="Technical",
-            markdown_description="""For Technical questions about me""",
+            name="Technical Profile",
+            markdown_description="""If you want to deep dive about Fakher's IT profile""",
             icon="public/technical_user.png",
         ),
     ]
@@ -42,6 +41,10 @@ async def start():
     # await cl.Message(
     #     content=f"starting chat with {user.identifier} using the {chat_profile} chat profile"
     # ).send()
+    cl.user_session.set(
+        "message_history",
+        [{"role": "system", "content": "You are a helpful assistant."}],
+    )
     memory = []
     cl.user_session.set("memory", memory)
     # chat_profile = cl.user_session.get("chat_profile")
@@ -54,14 +57,49 @@ async def start():
     settings = await cl.ChatSettings(
         [
             Select(
-                id="Model",
-                label="AI Backend",
-                values=[
-                    "GPT 4o-mini augmented with my public data",
-                    # "AZURE Gpt-4o-realtime-latest RAGLESS(upcoming features)",
-                ],
+                id="model",
+                label="GPT augmented with My Public Data",
+                values=["gpt-4o-mini", "gpt-4o"],
                 initial_index=0,
-            )
+            ),
+            Switch(id="stream", label="OpenAI - Stream Tokens", initial=True),
+            Slider(
+                id="temperature",
+                label="OpenAI - Temperature",
+                initial=0.7,
+                min=0,
+                max=1,
+                step=0.1,
+                tooltip="Control the randomness of the response",
+            ),
+            Slider(
+                id="max_tokens",
+                label="OpenAI - Output Tokens",
+                initial=300,
+                min=100,
+                max=500,
+                step=50,
+                tooltip="Maximum Output Tokens delivered by the model",
+            ),
+            # Tags(id="stop", label="OpenAI - StopSequence", initial=[""]),
+            Slider(
+                id="top_p",
+                label="Top-p sampling",
+                initial=1,
+                min=1,
+                max=5,
+                step=1,
+                tooltip="In Top-p sampling chooses from the smallest possible set of words whose cumulative probability exceeds the probability p",
+            ),
+            Slider(
+                id="n",
+                label="Completion number",
+                initial=1,
+                min=1,
+                max=5,
+                step=1,
+                tooltip="Generate one completion",
+            ),
         ]
     ).send()
     cl.user_session.set("settings", settings)
@@ -72,227 +110,52 @@ async def setup_agent(settings):
     print("on_settings_update", settings)
 
 
-@cl.step(name="Estimate Complexity", type="tool")
-async def estimate_complexity(message):
-
-    # Simulate a running task
-    url = f"{ASSISTANT_RAG_URL}/prompt"
-    evaluate_complexity_prompt = f"""
-    ## Objective: Your role is to analyze user question and estimate the complexity of the problem or the task mentioned
-    ## Guidelines:
-    ### 1- Answer only with one word: name of the level of complexity.
-    ### 2- this is the list of levels of complexity : [Low, Medium, High]
-    ### 3- To help you optimize your estimation this is few shots examples to help:
-    Example: 1 "Comment je configure une collecte d'une log applicative multi line Filebeat 
-    sur le socle convergé " => Complexity : High
-    Example 2: 
-    "Comment je me connecte sur Logcraft?" => Complexity => Low
-    Example 3:
-    "Comment je rajoute une data source dans ASSISTANT Dashboarding?" => Complexity: Medium
-    Exemple 4: "Comment rajouter un hostgroup sur un agent controlM?" > Complexity : Low
-    #########################################
-    ###Below is user question:
-    #########################################
-    {message.content}
-    #########################################
-    Answer:
-    """
-    output = requests.request(
-        "POST",
-        url=url,
-        params={
-            "prompt_text": evaluate_complexity_prompt,
-            "llm": "maia-gpt-4o-mini-no-rag",
-        },
-        verify=False,
-        timeout=10,
-    )
-    response = json.loads(output.text)["candidates"][0]["content"]
-
-    # msg = cl.Message(content=response, author="Assistant")
-
-    return response
-
-
-@cl.step(name="Mutli Query", type="tool")
-async def multi_query(message):
-    # Simulate a running task
-    url = f"{ASSISTANT_RAG_URL}/prompt"
-    # msg = cl.Message(content="", author="Assistant")
-    prompt = f"""
-    ## Objective: I want to respond to complex user questions
-    # Break Down the complex question into maximum 3 simple questions (not necessary 3)
-    ## Guidelines:
-    ### 1- The result must be in a semi column separated string values
-    ### 2- This is few shots examples:
-    Example 1: "Bonjour, j'ai un problème de parsing logportal, j'ai le tag DATEFAIL dans les resultats de test Logstash" => Comment accéder à Logportal?;C'est quoi un TAG Datefail dans Logportal?;Comment faire pour le résoudre?
-    Example 2: "Bonjour, j'ai besoin de configurer Filebeat" => C'est quoi Logportal?;comment y accéder?;Est-ce que tu as Une démo Logportal?
-    #########################################
-    Question: {message.content}
-    #########################################
-    Answer:
-    """
-    output = requests.request(
-        "POST",
-        url=url,
-        params={
-            "prompt_text": prompt,
-            "llm": "maia-gpt-4o-mini-no-rag",
-        },
-        verify=False,
-        timeout=10,
-    )
-    step_questions = json.loads(output.text)["candidates"][0]["content"].split(";")
-    aggregated_prompt = f"""
-    Look at at intermediate Question/Responses to answer the initial question {message.content} \n
-    Don't forget to refer to the link provided in the responses
-    #############################
-    """
-    for question in step_questions:
-        # Find Topic
-        output = await find_topic(cl.Message(content=question))
-        # Call the tool 2
-        res = requests.request(
-            "POST",
-            url=url,
-            params={
-                "prompt_text": question,
-                "llm": "maia-gpt-4o-mini",
-                "topic": [output],
-            },
-            verify=False,
-            timeout=10,
-        )
-        intermediate_response = json.loads(res.text)["candidates"][0]["content"]
-        print("intermediate_response", intermediate_response)
-        # await respond(message, output)
-        aggregated_prompt += (
-            f"Question: {question}\nResponse: {intermediate_response}\n\n"
-        )
-
-    aggregated_prompt += """
-    #############################
-    Answer:
-    """
-
-    output = requests.request(
-        "POST",
-        url=url,
-        params={
-            "prompt_text": aggregated_prompt,
-            "llm": "maia-gpt-4o-mini-no-rag",
-        },
-        verify=False,
-        timeout=10,
-    )
-    response = json.loads(output.text)["candidates"][0]["content"]
-    msg = cl.Message(content=response, author="Assistant")
-    return msg
-
-
-@cl.step(name="FIND TOPIC", type="tool")
-async def find_topic(message):
-    run_labels = [
-        "filebeat_support",
-    ]
-    # Simulate a running task
-    url = f"{ASSISTANT_RAG_URL}/prompt"
-    # msg = cl.Message(content="", author="Assistant")
-    classif_prompt = f"""
-    ## Objective: You have to select the best topic that summarize a user ticket
-    ## Guidelines:
-    ### 1- Answer only with the name of labels.
-    ### 2- this is a list of labels : {run_labels}
-    ### 3- This are some concepts related to above labels, use them to tune your classification;there is no order in the list:
-    specific_access: Access to a kibana space, to a specific index, ASSISTANT transverse
-    ### 4- This is few shots examples:
-    #########################################
-    Question: {message.content}
-    #########################################
-    Answer:
-    """
-    output = requests.request(
-        "POST",
-        url=url,
-        params={
-            "prompt_text": classif_prompt,
-            "llm": "maia-gpt-4o-mini-no-rag",
-        },
-        verify=False,
-        timeout=10,
-    )
-    response = json.loads(output.text)["candidates"][0]["content"]
-
-    # msg = cl.Message(content=response, author="Assistant")
-
-    return response
-
-
-@cl.step(name="RESPONSE", type="tool")
-async def respond(message, auto_topic):
-
-    # Simulate a running task
-    url = f"{ASSISTANT_RAG_URL}/prompt"
-    if ":::" in message.content:
-        topic = message.content.split(":::")[0].strip()
-    else:
-        topic = auto_topic
-
-    output = requests.request(
-        "POST",
-        url=url,
-        params={
-            "prompt_text": message.content,
-            "llm": "maia-gpt-4o-mini",
-            "topics": [topic],
-        },
-        verify=False,
-        timeout=10,
-    )
-    response = json.loads(output.text)["candidates"][0]["content"]
-
-    # update_memory("assistant", response)
-    msg = cl.Message(content=response, author="Assistant")
-    return msg
+# settings = {
+#     "model": "gpt-4o-mini",
+#     "temperature": 0.7,
+#     "max_tokens": 500,
+#     "top_p": 1,
+#     "n" : 1,
+#     "frequency_penalty": 0,
+#     "presence_penalty": 0,
+#     "stream": True
+# }
 
 
 @cl.on_message
-async def main(message: cl.Message):
-    msg = "no response"
+async def handle_message(message: cl.Message):
+
+    # Get Message history
+    message_history = cl.user_session.get("message_history")
+    message_history.append({"role": "user", "content": message.content})
     # Update memory with user's message
-    memory = update_memory("user", message.content)
+    update_memory("user", message.content)
+
+    msg = cl.Message(content="")
 
     # Retrieve the selected AI Backend setting
     settings = cl.user_session.get("settings")
-    ai_backend = settings.get("Model")
+    settings['max_tokens'] = int(settings['max_tokens'])
+    settings['top_p'] = int(settings['top_p'])
+    settings['n'] = int(settings['n'])
 
-    if ai_backend == "AI Backend":
-        msg = await respond_no_rag(message)
+    print(settings)
+    ai_backend = str(settings.get("Model"))
+    print(ai_backend)
 
-    await msg.send()
 
-
-async def respond_no_rag(message: cl.Message):
-
-    # Simulate a running task
-    update_memory("user", message.content)
-
-    url = f"{ASSISTANT_RAG_URL}/prompt"
-    output = requests.request(
-        "POST",
-        url=url,
-        params={
-            "prompt_text": message.content,
-            "llm": "maia-gpt-4o-mini-no-rag",
-        },
-        verify=False,
-        timeout=10,
+    stream = await client.chat.completions.create(
+        messages=message_history,
+        **settings,
+        stop =None
     )
-    response = json.loads(output.text)["candidates"][0]["content"]
 
-    update_memory("assistant", response)
-    msg = cl.Message(content=response, author="Assistant")
-    return msg
+    async for chunk in stream:
+        if token := chunk.choices[0].delta.content or "":
+            await msg.stream_token(token)
+
+    message_history.append({"role": "assistant", "content": msg.content})
+    await msg.update()
 
 
 def update_memory(role: str, content: str) -> List[Dict[str, str]]:
@@ -312,33 +175,51 @@ async def set_starters():
     # await cl.Message(
     #     content="Hi there, my name is ✨*ASSISTANT ASSISTANT*✨ I would be happy to help you 😊"
     # ).send()
-    # profiles = settings.get("Model")
-    # print()
     return [
         cl.Starter(
-            label="Teklab E-Learning Platform",
-            message="useful_links::: (complexity:low) Give Me Link to access to Teklab",
-            icon="/public/teklab.png",
+            label="Who am I",
+            message="Who is Fakher HANNAFI? Introduce to me Fakher in few words",
+            # icon="/public/teklab.png",
         ),
         cl.Starter(
-            label="Filebeat",
-            message="filebeat::: (complexity:low) Give me links to configure Filebeat",
-            icon="/public/filebeat.svg",
+            label="Highlights and Success",
+            message="What are your Fakher's biggest project? Tell me some few stories",
+            # icon="/public/teklab.png",
         ),
         cl.Starter(
-            label="ASSISTANT Dashboarding",
-            message="ASSISTANT-dashboarding::: (complexity:low) What Is ASSISTANT Dashboarding?",
-            icon="/public/grafana.svg",
+            label="My Value Add in AI",
+            message="How can you help companies build their AI services? Give me some examples based on Fakher's experience",
+            # icon="/public/teklab.png",
+        ),
+        # cl.Starter(
+        #     label="My impact within my previous experiences",
+        #     message="What was your impact in your previous experiences?",
+        #     # icon="/public/teklab.png",
+        # ),
+        cl.Starter(
+            label="What Drives Me",
+            message="What are examples of measurable impacts from integrating data-driven solutions?",
+            # icon="/public/teklab.png",
         ),
         cl.Starter(
-            label="Access To ASSISTANT",
-            message="spacecraft:::(complexity:low) How to request access to ASSISTANT?",
-            icon="/public/access.png",
+            label="Professional Milestones",
+            message="List me your track record of your certifications. Categorize them by Technology and level of expertise",
+            # icon="/public/filebeat.svg",
         ),
         cl.Starter(
-            label="Elastic APM",
-            message="apm::: (complexity:low) How to subscribe to Elastic APM?",
-            icon="/public/elastic_apm.png",
+            label="What People Say About Me",
+            message="Give me some references about Fakher's profile",
+            # icon="/public/filebeat.svg",
+        ),
+        cl.Starter(
+            label="Challenges and Growth",
+            message="What are your Fakher's major failures? Tell me some few stories",
+            # icon="/public/teklab.png",
+        ),
+        cl.Starter(
+            label="Passions That Fuel My Work",
+            message="Talk me about Fakher's passions",
+            # icon="/public/grafana.svg",
         ),
     ]
 
