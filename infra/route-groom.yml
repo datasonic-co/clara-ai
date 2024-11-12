@@ -2,9 +2,9 @@ kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
   name: assistant-frontend
-  namespace: tia-hubble-prd-nat
+  namespace: mynamespace
 spec:
-  host: ai-assistant.pres-prod.ocp-infra-prd-1.mycaas.intrabpce.fr
+  host: assistant.fakher.hannafi.com
   to:
     kind: Service
     name: assistant-service

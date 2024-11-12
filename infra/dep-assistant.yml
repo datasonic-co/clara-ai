@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: assistant-front
-        image: openshift.artifactory.mycloud.intranatixis.com/ai-assistant:IMAGE_VER
+        image: ecs.assistant/ai-assistant:IMAGE_VER
         env:
         - name: AI_RAG_ENDPOINT
           valueFrom:

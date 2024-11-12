@@ -19,6 +19,16 @@ $ source d:/code/ai_assistant/.venv/Scripts/activate
 pip install poetry
 ```
 
+# Install Peotry to manage package instead of pip
+```shell
+poetry lock
+```
+
+# Install Peotry to manage package instead of pip
+```shell
+poetry install
+```
+
 # Install dependencies declared in pyproject.toml
 ```shell
 poetry run ai-assistant -w
