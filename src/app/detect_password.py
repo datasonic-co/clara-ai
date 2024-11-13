@@ -30,8 +30,7 @@ def detect_secrets_with_llm(input_string):
     return output
 
 # Example string with a mock secret
-example_string = """I have a trouble connecting to artifactory with API this is information that can help: {'USER_API': mytechnical account,
-'INSTANCE_NAME': 'artifactory.contoso.com', 'API_KEY' = 'sk_test_4eC39HqLyjWDarjtT1zdp7dc'}
+example_string = """I have a trouble connecting to my system'}
 """
 output = detect_secrets_with_llm(example_string)
 print("Detection Result:")

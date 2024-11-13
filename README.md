@@ -50,17 +50,24 @@ aws ecr get-login-password --region eu-west-1 | docker login --username AWS --pa
 # Build Docker Image : 2- Build new image version with docker
 Build your Docker image using the following command. For information on building a Docker file from scratch see the instructions here . You can skip this step if your image is already built:
 ```shell
-docker build -t personal .
+docker build -t assistant .
 ```
 
-# Build Docker Image : 3- Tag Image
+# Build Docker Image : 3- Run and Test in local
+Run the following command to push this image to your newly created AWS repository 
+PI: make sure you are on project root folder to get .env file
+```shell
+docker run  --env-file .env assistant
+```
+
+# Build Docker Image : 4- Tag Image
 After the build completes, tag your image so you can push the image to this repository
 ```shell
-docker tag personal:latest <account_id>.dkr.ecr.eu-west-1.amazonaws.com/<repository_name>:latest
+docker tag assistant:latest 102184989743.dkr.ecr.eu-west-1.amazonaws.com/assistant:latest
 ```
 
-# Build Docker Image : 4- Push to ECR
+# Build Docker Image : 5- Push to ECR
 Run the following command to push this image to your newly created AWS repository:
 ```shell
-docker push <account_id>.dkr.ecr.eu-west-1.amazonaws.com/<repository_name>:latest
+docker push 102184989743.dkr.ecr.eu-west-1.amazonaws.com/assistant:latest
 ```

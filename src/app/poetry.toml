@@ -1,0 +1,4 @@
+# poetry.toml
+
+[virtualenvs]
+create = false
