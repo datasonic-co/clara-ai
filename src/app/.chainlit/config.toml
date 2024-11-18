@@ -54,7 +54,7 @@ edit_message = true
 
 [UI]
 # Name of the assistant.
-name = "My assistant"
+name = "Fakher assistant"
 
 # Description of the assistant. This is used for HTML tags.
 # description = ""
@@ -88,34 +88,35 @@ cot = "full"
 # custom_build = "./public/build"
 
 [UI.theme]
-    default = "dark"
-    #layout = "wide"
-    #font_family = "Inter, sans-serif"
-# Override default MUI light theme. (Check theme.ts)
+default = "dark"
+
+# Override default MUI light theme.
 [UI.theme.light]
-    background = "#FAFAFA"
-    paper = "#b8b2b6"
+background = "#F7F9FC"  # Light, subtle blue-gray for the background.
+paper = "#FFFFFF"  # Clean, pure white for the card elements.
 
-    [UI.theme.light.primary]
-        main = "#6200EE"
-        dark = "#3700B3"
-        light = "#BB86FC"
-    [UI.theme.light.text]
-        primary = "#FFFFFF"
-        secondary = "#757575"
+[UI.theme.light.primary]
+main = "#007BFF"  # Bright blue for a more vibrant primary color.
+dark = "#0056B3"  # Darker shade of blue for hover effects.
+light = "#33AFFF"  # Light blue for lighter UI elements or buttons.
 
-# Override default MUI dark theme. (Check theme.ts)
+[UI.theme.light.text]
+primary = "#333333"  # Dark gray for better readability than pure black.
+secondary = "#555555"  # Medium gray for less emphasized text.
+
+# Override default MUI dark theme.
 [UI.theme.dark]
-    background = "#262547"
-    paper = "#635d60"
+background = "#1A1C2D"  # Dark blue-gray for a calm background.
+paper = "#24243A"  # Slightly lighter dark color for card elements.
 
-    [UI.theme.dark.primary]
-        main = "#BB86FC"
-        dark = "#3700B3"
-        light = "#6200EE"
-    [UI.theme.dark.text]
-        primary = "#FFFFFF"
-        secondary = "#B0B0B0"
+[UI.theme.dark.primary]
+main = "#FF79C6"  # Bright pink for contrast with the dark background.
+dark = "#BD5B91"  # Darker shade of pink for hover effects.
+light = "#FF92D0"  # Light pink for button highlights.
+
+[UI.theme.dark.text]
+primary = "#EAEAEA"  # Very light gray for good contrast against the dark background.
+secondary = "#A0A0A0"  # Medium-light gray for less emphasized text.
 
 [meta]
 generated_by = "1.2.0"
