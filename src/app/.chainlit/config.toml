@@ -87,6 +87,7 @@ cot = "full"
 # Be careful: If this is a relative path, it should not start with a slash.
 # custom_build = "./public/build"
 
+
 [UI.theme]
 default = "dark"
 

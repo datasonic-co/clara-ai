@@ -42,19 +42,21 @@ def is_valid_uuid(uuid_to_test, version=4):
 
 @cl.set_chat_profiles
 async def chat_profile(current_user: cl.User):
-    profiles = [
-        cl.ChatProfile(
-            name="Public Profile",
-            markdown_description="""For General questions about Fakher's profile""",
-            icon="public/general_user.png",
-        ),
-        cl.ChatProfile(
-            name="Technical Profile",
-            markdown_description="""If you want to deep dive about Fakher's IT profile""",
-            icon="public/technical_user.png",
-        ),
-    ]
+    profiles = []
+    # profiles = [
+    #     cl.ChatProfile(
+    #         name="Public Profile",
+    #         markdown_description="""For General questions about Fakher's profile""",
+    #         icon="public/general_user.png",
+    #     ),
+    #     cl.ChatProfile(
+    #         name="Technical Profile",
+    #         markdown_description="""If you want to deep dive about Fakher's IT profile""",
+    #         icon="public/technical_user.png",
+    #     ),
+    # ]
     return profiles
+
 @cl.step(type="tool")
 async def speech_to_text(audio_file):
     try:
@@ -91,68 +93,57 @@ async def process_files(files: List[Element]):
     ]
 
 
-@cl.set_starters
-async def set_starters():
-    # await cl.Message(
-    #     content="Hi there, my name is ✨*ASSISTANT ASSISTANT*✨ I would be happy to help you 😊"
-    # ).send()
-    return [
-        cl.Starter(
-            label="Who am I",
-            message="Who is Fakher HANNAFI? Introduce to me Fakher in few words",
-            # icon="/public/teklab.png",
-        ),
-        cl.Starter(
-            label="Highlights and Success",
-            message="What are your Fakher's biggest project? Tell me some few stories",
-            # icon="/public/teklab.png",
-        ),
-        cl.Starter(
-            label="My Value Add in AI",
-            message="How can you help companies build their AI services? Give me some examples based on Fakher's experience",
-            # icon="/public/teklab.png",
-        ),
-        # cl.Starter(
-        #     label="My impact within my previous experiences",
-        #     message="What was your impact in your previous experiences?",
-        #     # icon="/public/teklab.png",
-        # ),
-        cl.Starter(
-            label="What Drives Me",
-            message="What are examples of measurable impacts from integrating data-driven solutions?",
-            # icon="/public/teklab.png",
-        ),
-        cl.Starter(
-            label="Professional Milestones",
-            message="List me your track record of your certifications. Categorize them by Technology and level of expertise",
-            # icon="/public/filebeat.svg",
-        ),
-        cl.Starter(
-            label="What People Say About Me",
-            message="Give me some references about Fakher's profile",
-            # icon="/public/filebeat.svg",
-        ),
-        cl.Starter(
-            label="Challenges and Growth",
-            message="What are your Fakher's major projects? Tell me some few stories",
-            # icon="/public/teklab.png",
-        ),
-        cl.Starter(
-            label="Passions That Fuel My Work",
-            message="Talk me about Fakher's passions",
-            # icon="/public/grafana.svg",
-        ),
-    ]
+# @cl.set_starters
+# async def set_starters():
+    # if cl.context.session.client_type == "copilot":
+    #     return []
+    #     # await cl.Message(
+    #     #     content="Hi there, my name is ✨*ASSISTANT ASSISTANT*✨ I would be happy to help you 😊"
+    #     # ).send()
+    # else:
+    # return [
+
+    #     cl.Starter(
+    #         label="Who am I",
+    #         message="Who is Fakher HANNAFI? Introduce to me Fakher in few words",
+    #         icon="/public/icons/user.svg",
+    #     ),
+    #     cl.Starter(
+    #         label="Key Projects",
+    #         message="What are your Fakher's biggest project? Tell me some few stories",
+    #         icon="/public/icons/trophy.svg",  # Download and place the 'trophy.svg' icon here
+    #     ),
+    #     cl.Starter(
+    #         label="Big Achievements",
+    #         message="What are his big achievements? Give me Top 5 Certifications",
+    #         icon="/public/icons/graph.svg",
+    #     ),
+    #     cl.Starter(
+    #         label="Challenges and Growth",
+    #         message="What major challenges does he face, and how can he overcome them?",
+    #         icon="/public/icons/growth.svg",
+    #     )
+    # ]
 
 
 
 @cl.on_chat_start
 async def start_chat():
+
     # Create a Thread
     thread = await async_openai_client.beta.threads.create()
     # Store thread ID in user session for later use
     cl.user_session.set("thread_id", thread.id)
     try:
+        if cl.context.session.client_type == "webapp":
+            text_content = """Hi there, my name is ✨*Clara*✨ I am Fakher's secretary. I am here to help. 
+            Feel free to ask anything about him. Your turn 😊"""
+            image = cl.Image(path="public/clara.png", name="Logo", display="inline", size="small")
+            await cl.Message(
+                content=text_content,
+                elements=[image],
+            ).send()
+
         # Create a thread with OpenAI
         thread = await async_openai_client.beta.threads.create()
         openai_thread_id = thread.id
