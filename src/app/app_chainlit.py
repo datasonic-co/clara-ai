@@ -135,14 +135,14 @@ async def start_chat():
     # Store thread ID in user session for later use
     cl.user_session.set("thread_id", thread.id)
     try:
-        if cl.context.session.client_type == "webapp":
-            text_content = """Hi there, my name is ✨*Clara*✨ I am Fakher's secretary. I am here to help. 
-            Feel free to ask anything about him. Your turn 😊"""
-            image = cl.Image(path="public/clara.png", name="Logo", display="inline", size="small")
-            await cl.Message(
-                content=text_content,
-                elements=[image],
-            ).send()
+        # if cl.context.session.client_type == "webapp":
+        text_content = """Hi there, my name is ✨*Clara*✨ I am Fakher's secretary. I am here to help. 
+        Feel free to ask anything about him. Your turn 😊"""
+        image = cl.Image(path="public/clara.png", name="Logo", display="inline", size="small")
+        await cl.Message(
+            content=text_content,
+            elements=[image],
+        ).send()
 
         # Create a thread with OpenAI
         thread = await async_openai_client.beta.threads.create()
