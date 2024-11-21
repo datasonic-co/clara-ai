@@ -1,23 +1,19 @@
 import os
+import tempfile
 import uuid
 import plotly
 from io import BytesIO
 from pathlib import Path
 from typing import List
-# from chainlit.input_widget import Select, Switch, Slider
-
 from openai import AsyncOpenAI, OpenAI
-
 from literalai.helper import utc_now
-
 import chainlit as cl
 from chainlit.config import config
 from chainlit.element import Element
 from openai.types.beta.threads.runs import RunStep
-
 from dotenv import load_dotenv
-
 from modules.EventHandler import EventHandler
+# from gtts import gTTS
 from literalai import LiteralClient
 
 load_dotenv()
@@ -43,18 +39,6 @@ def is_valid_uuid(uuid_to_test, version=4):
 @cl.set_chat_profiles
 async def chat_profile(current_user: cl.User):
     profiles = []
-    # profiles = [
-    #     cl.ChatProfile(
-    #         name="Public Profile",
-    #         markdown_description="""For General questions about Fakher's profile""",
-    #         icon="public/general_user.png",
-    #     ),
-    #     cl.ChatProfile(
-    #         name="Technical Profile",
-    #         markdown_description="""If you want to deep dive about Fakher's IT profile""",
-    #         icon="public/technical_user.png",
-    #     ),
-    # ]
     return profiles
 
 @cl.step(type="tool")
@@ -68,6 +52,21 @@ async def speech_to_text(audio_file):
         cl.logger.error(f"Speech-to-Text failed: {e}")
         return "Sorry, I couldn't process the audio."
 
+# @cl.step(type="tool")
+# async def text_to_speech(text):
+#     try:
+#         # Convert text to speech using gTTS
+#         tts = gTTS(text=text, lang='en')
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+#             tts.save(fp.name)
+#             audio_path = fp.name
+
+#         # Create an audio element to send back to the user
+#         audio_element = cl.Audio(path=audio_path, name="response_audio.mp3")
+#         await cl.Message(content="Here is the audio response:", elements=[audio_element]).send()
+#     except Exception as e:
+#         cl.logger.error(f"Text-to-Speech failed: {e}")
+#         await cl.Message(content="Sorry, I couldn't convert the text to audio.").send()
 
 async def upload_files(files: List[Element]):
     file_ids = []
@@ -77,7 +76,6 @@ async def upload_files(files: List[Element]):
         )
         file_ids.append(uploaded_file.id)
     return file_ids
-
 
 async def process_files(files: List[Element]):
     file_ids = []
@@ -92,41 +90,6 @@ async def process_files(files: List[Element]):
         for file_id, file in zip(file_ids, files)
     ]
 
-
-# @cl.set_starters
-# async def set_starters():
-    # if cl.context.session.client_type == "copilot":
-    #     return []
-    #     # await cl.Message(
-    #     #     content="Hi there, my name is ✨*ASSISTANT ASSISTANT*✨ I would be happy to help you 😊"
-    #     # ).send()
-    # else:
-    # return [
-
-    #     cl.Starter(
-    #         label="Who am I",
-    #         message="Who is Fakher HANNAFI? Introduce to me Fakher in few words",
-    #         icon="/public/icons/user.svg",
-    #     ),
-    #     cl.Starter(
-    #         label="Key Projects",
-    #         message="What are your Fakher's biggest project? Tell me some few stories",
-    #         icon="/public/icons/trophy.svg",  # Download and place the 'trophy.svg' icon here
-    #     ),
-    #     cl.Starter(
-    #         label="Big Achievements",
-    #         message="What are his big achievements? Give me Top 5 Certifications",
-    #         icon="/public/icons/graph.svg",
-    #     ),
-    #     cl.Starter(
-    #         label="Challenges and Growth",
-    #         message="What major challenges does he face, and how can he overcome them?",
-    #         icon="/public/icons/growth.svg",
-    #     )
-    # ]
-
-
-
 @cl.on_chat_start
 async def start_chat():
 
@@ -138,14 +101,14 @@ async def start_chat():
         # if cl.context.session.client_type == "webapp":
         text_content = """Hi there, my name is ✨*Clara*✨ I am Fakher's secretary. I am here to help. 
         Feel free to ask anything about him. Your turn 😊"""
-        image = cl.Image(path="public/clara.png", name="Logo", display="inline", size="small")
+        image = cl.Image(path="public/clara.png", name="Logo", display="side", size="small")
         await cl.Message(
             content=text_content,
             elements=[image],
         ).send()
 
         # Create a thread with OpenAI
-        thread = await async_openai_client.beta.threads.create()
+        thread = await async_openai_client.beta.threads.create() 
         openai_thread_id = thread.id
         cl.user_session.set("openai_thread_id", openai_thread_id)
 
@@ -201,6 +164,12 @@ async def main(message: cl.Message):
                 content=message.content,
                 attachments=attachments,
             )
+
+            # Speech-to-Text for audio messages
+            for element in message.elements:
+                if isinstance(element, cl.Audio):
+                    transcription = await speech_to_text(element.path)
+                    await cl.Message(content=f"Transcription: {transcription}").send()
 
             # Create and Stream a Run for OpenAI
             async with async_openai_client.beta.threads.runs.stream(
