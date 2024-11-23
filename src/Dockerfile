@@ -20,6 +20,10 @@ RUN poetry install --no-dev --no-root
 # Copy the current directory contents into the container
 COPY app /app
 
+# Create .files if not exist
+RUN mkdir -p /app/.files
+
+
 # Add Write access to .files
 RUN chmod 777 /app/.files
 
