@@ -20,6 +20,9 @@ RUN poetry install --no-dev --no-root
 # Copy the current directory contents into the container
 COPY app /app
 
+# Add Write access to .files
+RUN chmod 777 /app/.files
+
 
 # Set a standard system user
 RUN useradd -m appuser

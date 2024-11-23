@@ -42,9 +42,9 @@ edit_message = true
     # Threshold for audio recording
     min_decibels = -45
     # Delay for the user to start speaking in MS
-    initial_silence_timeout = 3000
+    initial_silence_timeout = 2000
     # Delay for the user to continue speaking in MS. If the user stops speaking for this duration, the recording will stop.
-    silence_timeout = 1500
+    silence_timeout = 700
     # Above this duration (MS), the recording will forcefully stop.
     max_duration = 15000
     # Duration of the audio chunks in MS
@@ -54,7 +54,7 @@ edit_message = true
 
 [UI]
 # Name of the assistant.
-name = "Fakher assistant"
+name = "Clara"
 
 # Description of the assistant. This is used for HTML tags.
 # description = ""
@@ -93,31 +93,37 @@ default = "dark"
 
 # Override default MUI light theme.
 [UI.theme.light]
-background = "#F7F9FC"  # Light, subtle blue-gray for the background.
-paper = "#FFFFFF"  # Clean, pure white for the card elements.
+background = "#F0F2F5"  # Soft, light gray for a gentle background.
+paper = "#FFFFFF"       # Pure white for cards and surfaces.
 
 [UI.theme.light.primary]
-main = "#007BFF"  # Bright blue for a more vibrant primary color.
-dark = "#0056B3"  # Darker shade of blue for hover effects.
-light = "#33AFFF"  # Light blue for lighter UI elements or buttons.
+main = "#1E88E5"   # Vibrant blue for primary elements.
+dark = "#1565C0"   # Darker blue for hover effects.
+light = "#6AB7FF"  # Lighter blue for highlights.
+
+[UI.theme.light.secondary]
+main = "#FF4081"   # Pink accent color for secondary elements.
 
 [UI.theme.light.text]
-primary = "#333333"  # Dark gray for better readability than pure black.
-secondary = "#555555"  # Medium gray for less emphasized text.
+primary = "#212121"  # Dark gray for primary text.
+secondary = "#757575"  # Medium gray for secondary text.
 
 # Override default MUI dark theme.
 [UI.theme.dark]
-background = "#1A1C2D"  # Dark blue-gray for a calm background.
-paper = "#24243A"  # Slightly lighter dark color for card elements.
+background = "#121212"  # Standard dark theme background.
+paper = "#1E1E1E"       # Slightly lighter for card elements.
 
 [UI.theme.dark.primary]
-main = "#FF79C6"  # Bright pink for contrast with the dark background.
-dark = "#BD5B91"  # Darker shade of pink for hover effects.
-light = "#FF92D0"  # Light pink for button highlights.
+main = "#90CAF9"   # Light blue for contrast against dark background.
+dark = "#5D99C6"   # Slightly darker blue for hover effects.
+light = "#E3F2FD"  # Very light blue for highlights.
+
+[UI.theme.dark.secondary]
+main = "#F48FB1"   # Light pink accent color matching the light theme.
 
 [UI.theme.dark.text]
-primary = "#EAEAEA"  # Very light gray for good contrast against the dark background.
-secondary = "#A0A0A0"  # Medium-light gray for less emphasized text.
+primary = "#E0E0E0"  # Light gray for primary text.
+secondary = "#B0B0B0"  # Medium-light gray for secondary text.
 
 [meta]
 generated_by = "1.2.0"
