@@ -174,9 +174,15 @@ async def start_chat():
         literalai_thread_id = str(uuid.uuid4())
         cl.user_session.set("literalai_thread_id", literalai_thread_id)
 
+        user_language = cl.user_session.get("languages","fr-FR").split(",")[0]
         # Display a welcome message to the user
-        text_content = """Hi there! I’m ✨Clara✨, Fakher’s secretary. 
-        I’m here to assist you. Feel free to ask anything about him. Over to you! 😊"""
+        welcome_messages = {
+            "en-US": "Hi there! I’m ✨Clara✨, Fakher’s secretary. I’m here to assist you. Feel free to ask anything about him. Over to you! 😊",
+            "fr-FR": "Bonjour ! Je suis ✨Clara✨, la secrétaire de Fakher. Je suis là pour vous aider. C'est à vous ! 😊",
+            # Add more languages here as needed
+        }
+        text_content = welcome_messages.get(user_language, welcome_messages["fr-FR"])
+
         image = cl.Image(path="public/clara.png", name="Logo", size="small")
         await cl.Message(
             content=text_content,
@@ -274,7 +280,6 @@ async def stop_chat():
 @cl.on_message
 async def main(message: cl.Message):
     try:
-        print("on_message hook main fuction")
         openai_thread_id = cl.user_session.get("openai_thread_id")
         literalai_thread_id = cl.user_session.get("literalai_thread_id")
 

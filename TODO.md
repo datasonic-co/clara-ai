@@ -1,3 +1,5 @@
 # My Todo
 
-- [ ] [FEAT] Deploy To production
+- [x] [FEAT] Deploy To production
+- [ ] [FEAT] Add Language Detection
+- [ ] [FEAT] Voice Transcribe Realtime
