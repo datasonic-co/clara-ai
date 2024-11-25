@@ -14,6 +14,8 @@ from chainlit.element import Element
 from openai.types.beta.threads.runs import RunStep
 from dotenv import load_dotenv
 from modules.EventHandler import EventHandler
+import requests
+from time import sleep
 
 # from gtts import gTTS
 from literalai import LiteralClient
@@ -28,6 +30,9 @@ sync_openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 assistant = sync_openai_client.beta.assistants.retrieve(
     os.environ.get("OPENAI_ASSISTANT_ID")
 )
+
+GLADIA_API_URL = "https://api.gladia.io/v2"
+GLADIA_API_KEY = os.environ.get("GLADIA_API_KEY")
 
 config.ui.name = assistant.name
 
@@ -44,6 +49,14 @@ def is_valid_uuid(uuid_to_test, version=4):
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
+
+
+def make_request(url, headers, method="GET", data=None, files=None):
+    if method == "POST":
+        response = requests.post(url, headers=headers, json=data, files=files)
+    else:
+        response = requests.get(url, headers=headers)
+    return response.json()
 
 
 @cl.step(type="tool")
@@ -76,7 +89,6 @@ async def generate_text_answer(transcription):
             return final_response[0].content[0].text.value
         # return await text_to_speech(final_response[0].content[0].text.value)
 
-
     except Exception as e:
         cl.logger.error(f"Failed to generate text answer: {e}")
         return "I'm sorry, I couldn't generate a response at this time."
@@ -88,13 +100,70 @@ async def generate_text_answer(transcription):
 #     return profiles
 
 
+# @cl.step(type="tool")
+# async def speech_to_text(audio_file):
+#     try:
+#         response = await async_openai_client.audio.transcriptions.create(
+#             model="whisper-1", file=audio_file
+#         )
+#         return response.text
+#     except Exception as e:
+#         cl.logger.error(f"Speech-to-Text failed: {e}")
+#         return "Sorry, I couldn't process the audio."
+
+
 @cl.step(type="tool")
-async def speech_to_text(audio_file):
+async def speech_to_text(audio_input):
+
     try:
-        response = await async_openai_client.audio.transcriptions.create(
-            model="whisper-1", file=audio_file
+        headers = {"x-gladia-key": f"{GLADIA_API_KEY}"}
+        files = {
+            "audio": (
+                "input_audio.wav",
+                audio_input,
+                "audio/wav",
+            ),
+        }
+
+        print("- Uploading file to Gladia...")
+        upload_response = make_request(
+            f"{GLADIA_API_URL}/upload", headers, "POST", files=files
         )
-        return response.text
+
+        print("Upload response with File ID:", upload_response)
+        audio_url = upload_response.get("audio_url")
+        data = {
+            "audio_url": audio_url,
+            "diarization": True,
+        }
+
+        headers["Content-Type"] = "application/json"
+        print("- Sending request to Gladia API...")
+        post_response = make_request(
+            f"{GLADIA_API_URL}/transcription/", headers, "POST", data=data
+        )
+        print("Post response with Transcription ID:", post_response)
+        result_url = post_response.get("result_url")
+
+        if result_url:
+            while True:
+                cl.logger.info(f"Polling for results...")
+                poll_response = make_request(result_url, headers)
+                if poll_response.get("status") == "done":
+                    cl.logger.info(
+                        f"- Transcription done: {poll_response.get('result')}"
+                    )
+                    return poll_response.get("result")["transcription"][
+                        "full_transcript"
+                    ]
+                elif poll_response.get("status") == "error":
+                    cl.logger.error(f"- Transcription failed: {poll_response}")
+                else:
+                    cl.logger.debug(
+                        f"- Transcription status: {poll_response.get('status')}"
+                    )
+                sleep(5)
+        print("- End of work")
     except Exception as e:
         cl.logger.error(f"Speech-to-Text failed: {e}")
         return "Sorry, I couldn't process the audio."
@@ -174,7 +243,7 @@ async def start_chat():
         literalai_thread_id = str(uuid.uuid4())
         cl.user_session.set("literalai_thread_id", literalai_thread_id)
 
-        user_language = cl.user_session.get("languages","fr-FR").split(",")[0]
+        user_language = cl.user_session.get("languages", "en-US").split(",")[0]
         # Display a welcome message to the user
         welcome_messages = {
             "en-US": "Hi there! I’m ✨Clara✨, Fakher’s secretary. I’m here to assist you. Feel free to ask anything about him. Over to you! 😊",
@@ -206,14 +275,14 @@ async def on_audio_chunk(chunk: cl.AudioChunk):
         cl.user_session.set("audio_buffer", buffer)
         cl.user_session.set("audio_mime_type", chunk.mimeType)
 
-
     # TODO: Use Gladia to transcribe chunks as they arrive would decrease latency
     # see https://docs-v1.gladia.io/reference/live-audio
 
     # For now, write the chunks to a buffer and transcribe the whole audio at the end
     cl.user_session.get("audio_buffer").write(chunk.data)
 
-@cl.step(type="tool")
+
+# @cl.step(type="tool")
 @cl.on_audio_end
 async def on_audio_end(elements: list[ElementBased]):
     try:
@@ -239,19 +308,18 @@ async def on_audio_end(elements: list[ElementBased]):
             audio_file = audio_buffer.read()
             audio_mime_type: str = cl.user_session.get("audio_mime_type")
 
-
-            whisper_input = (audio_buffer.name, audio_file, audio_mime_type)
+            audio_input = (audio_buffer.name, audio_file, audio_mime_type)
 
             # Transcribe the audio
-            transcription = await speech_to_text(whisper_input)
+            transcription = await speech_to_text(audio_file)
             cl.logger.info(f"Transcription: {transcription}")
 
-            images = [file for file in elements if "image" in file.mime]
+            # images = [file for file in elements if "image" in file.mime]
 
             # Generate text answer from transcription
             text_answer = await generate_text_answer(transcription)
 
-            # cl.logger.info(f"Text Answer: {text_answer}")
+            cl.logger.info(f"Text Answer: {text_answer}")
             # Convert response to audio and send to the user
             await text_to_speech(text_answer)
 
@@ -270,6 +338,9 @@ async def stop_chat():
     current_run_step: RunStep = cl.user_session.get("run_step")
     if current_run_step:
         try:
+            await cl.Message(
+                content="The current session has ended. You can start a new session if needed."
+            ).send()
             await async_openai_client.beta.threads.runs.cancel(
                 thread_id=current_run_step.thread_id, run_id=current_run_step.run_id
             )
