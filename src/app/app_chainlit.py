@@ -100,73 +100,68 @@ async def generate_text_answer(transcription):
 #     return profiles
 
 
-# @cl.step(type="tool")
-# async def speech_to_text(audio_file):
-#     try:
-#         response = await async_openai_client.audio.transcriptions.create(
-#             model="whisper-1", file=audio_file
-#         )
-#         return response.text
-#     except Exception as e:
-#         cl.logger.error(f"Speech-to-Text failed: {e}")
-#         return "Sorry, I couldn't process the audio."
-
-
 @cl.step(type="tool")
-async def speech_to_text(audio_input):
-
+async def speech_to_text(audio_file):
     try:
-        headers = {"x-gladia-key": f"{GLADIA_API_KEY}"}
-        files = {
-            "audio": (
-                "input_audio.wav",
-                audio_input,
-                "audio/wav",
-            ),
-        }
-
-        print("- Uploading file to Gladia...")
-        upload_response = make_request(
-            f"{GLADIA_API_URL}/upload", headers, "POST", files=files
+        response = await async_openai_client.audio.transcriptions.create(
+            model="whisper-1", file=audio_file
         )
-
-        print("Upload response with File ID:", upload_response)
-        audio_url = upload_response.get("audio_url")
-        data = {
-            "audio_url": audio_url,
-            "diarization": True,
-        }
-
-        headers["Content-Type"] = "application/json"
-        print("- Sending request to Gladia API...")
-        post_response = make_request(
-            f"{GLADIA_API_URL}/transcription/", headers, "POST", data=data
-        )
-        print("Post response with Transcription ID:", post_response)
-        result_url = post_response.get("result_url")
-
-        if result_url:
-            while True:
-                cl.logger.info(f"Polling for results...")
-                poll_response = make_request(result_url, headers)
-                if poll_response.get("status") == "done":
-                    cl.logger.info(
-                        f"- Transcription done: {poll_response.get('result')}"
-                    )
-                    return poll_response.get("result")["transcription"][
-                        "full_transcript"
-                    ]
-                elif poll_response.get("status") == "error":
-                    cl.logger.error(f"- Transcription failed: {poll_response}")
-                else:
-                    cl.logger.debug(
-                        f"- Transcription status: {poll_response.get('status')}"
-                    )
-                sleep(5)
-        print("- End of work")
+        return response.text
     except Exception as e:
         cl.logger.error(f"Speech-to-Text failed: {e}")
         return "Sorry, I couldn't process the audio."
+
+
+# @cl.step(type="tool")
+# async def speech_to_text(audio_input):
+
+#     try:
+#         headers = {"x-gladia-key": f"{GLADIA_API_KEY}"}
+#         files = {
+#             "audio": (
+#                 "input_audio.wav",
+#                 audio_input,
+#                 "audio/wav",
+#             ),
+#         }
+
+#         upload_response = make_request(
+#             f"{GLADIA_API_URL}/upload", headers, "POST", files=files
+#         )
+
+#         audio_url = upload_response.get("audio_url")
+#         data = {
+#             "audio_url": audio_url,
+#             "diarization": True,
+#         }
+#         headers["Content-Type"] = "application/json"
+#         post_response = make_request(
+#             f"{GLADIA_API_URL}/transcription/", headers, "POST", data=data
+#         ) 
+#         result_url = post_response.get("result_url")
+
+#         if result_url:
+#             while True:
+#                 cl.logger.info(f"Polling for results...")
+#                 poll_response = make_request(result_url, headers)
+#                 if poll_response.get("status") == "done":
+#                     cl.logger.info(
+#                         f"- Transcription done: {poll_response.get('result')}"
+#                     )
+#                     return poll_response.get("result")["transcription"][
+#                         "full_transcript"
+#                     ]
+#                 elif poll_response.get("status") == "error":
+#                     cl.logger.error(f"- Transcription failed: {poll_response}")
+#                 else:
+#                     cl.logger.debug(
+#                         f"- Transcription status: {poll_response.get('status')}"
+#                     )
+#                 sleep(5)
+#         print("- End of work")
+#     except Exception as e:
+#         cl.logger.error(f"Speech-to-Text failed: {e}")
+#         return "Sorry, I couldn't process the audio."
 
 
 @cl.step(type="tool")
@@ -311,7 +306,7 @@ async def on_audio_end(elements: list[ElementBased]):
             audio_input = (audio_buffer.name, audio_file, audio_mime_type)
 
             # Transcribe the audio
-            transcription = await speech_to_text(audio_file)
+            transcription = await speech_to_text(audio_input)
             cl.logger.info(f"Transcription: {transcription}")
 
             # images = [file for file in elements if "image" in file.mime]

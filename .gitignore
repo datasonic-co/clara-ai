@@ -3,3 +3,4 @@
 **/*.pyc
 infra/secret*
 .chaintlit/**/*
+**/secret*
