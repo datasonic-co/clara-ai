@@ -1,7 +1,7 @@
 Fakher's Assistant UI
 
 <p align="center">
-<img src="container/ai-assistant/app/public/clara.png" alt="drawing" width="200"/>
+<img src="src/app/public/clara.png" alt="drawing" width="200"/>
 </p>
 
 
