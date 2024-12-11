@@ -1,4 +1,5 @@
 import base64
+import datetime
 import os
 import tempfile
 import uuid
@@ -16,6 +17,8 @@ from dotenv import load_dotenv
 from modules.EventHandler import EventHandler
 import requests
 from time import sleep
+from tools import BasicToolNode
+import ast
 
 # from gtts import gTTS
 from literalai import LiteralClient
@@ -31,18 +34,10 @@ assistant = sync_openai_client.beta.assistants.retrieve(
     os.environ.get("OPENAI_ASSISTANT_ID")
 )
 
-GLADIA_API_URL = "https://api.gladia.io/v2"
+GLADIA_API_URL = os.environ.get("GLADIA_API_URL")
 GLADIA_API_KEY = os.environ.get("GLADIA_API_KEY")
 
 config.ui.name = assistant.name
-
-
-def is_valid_uuid(uuid_to_test, version=4):
-    try:
-        uuid_obj = uuid.UUID(uuid_to_test, version=version)
-    except ValueError:
-        return False
-    return str(uuid_obj) == uuid_to_test
 
 
 # Function to encode an image
@@ -93,6 +88,40 @@ async def generate_text_answer(transcription):
         cl.logger.error(f"Failed to generate text answer: {e}")
         return "I'm sorry, I couldn't generate a response at this time."
 
+cl.instrument_openai()
+
+# async def get_time_now() -> str:
+#     """
+#     Get current date and time.
+#     """
+#     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+
+# @cl.step(type="tool")
+# async def call_tool(tool_call, message_history):
+#     function_name = tool_call.function.name
+#     arguments = ast.literal_eval(tool_call.function.arguments)
+
+#     current_step = cl.context.current_step
+#     current_step.name = function_name
+
+#     current_step.input = arguments
+
+#     function_response = get_time_now()
+
+#     current_step.output = function_response
+#     current_step.language = "json"
+
+#     message_history.append(
+#         {
+#             "role": "function",
+#             "name": function_name,
+#             "content": function_response,
+#             "tool_call_id": tool_call.id,
+#         }
+#     )
+
 
 # @cl.set_chat_profiles
 # async def chat_profile(current_user: cl.User):
@@ -137,7 +166,7 @@ async def speech_to_text(audio_file):
 #         headers["Content-Type"] = "application/json"
 #         post_response = make_request(
 #             f"{GLADIA_API_URL}/transcription/", headers, "POST", data=data
-#         ) 
+#         )
 #         result_url = post_response.get("result_url")
 
 #         if result_url:
@@ -363,7 +392,6 @@ async def main(message: cl.Message):
             content=message.content,
             attachments=attachments,
         )
-
         # Process assistant response
         async with async_openai_client.beta.threads.runs.stream(
             thread_id=openai_thread_id,

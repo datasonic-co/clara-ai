@@ -15,12 +15,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# @app.get("/custom-auth")
-# async def custom_auth():
-#     # Verify the user's identity with custom logic.
-#     token = create_jwt(User(identifier="Test User"))
-#     return JSONResponse({"token": token})
-
 @app.get("/app")
 def read_main():
     """
