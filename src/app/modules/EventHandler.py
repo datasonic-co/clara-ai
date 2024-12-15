@@ -1,22 +1,17 @@
+import json
 import plotly
 import chainlit as cl
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.threads.runs import RunStep
 from literalai.helper import utc_now
 import os
-from datetime import datetime
 
 from openai import AsyncOpenAI, OpenAI
 
 async_openai_client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 sync_openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
-
-async def get_time_now() -> str:
-    """
-    Get current date and time.
-    """
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+from tools.time import get_time_now
+from tools.GmailTools import gmail_send_mail
 
 
 class EventHandler(AsyncAssistantEventHandler):
@@ -118,27 +113,41 @@ class EventHandler(AsyncAssistantEventHandler):
         # since these will have our tool_calls
         if event.event == "thread.run.requires_action":
             run_id = event.data.id  # Retrieve the run ID from the event data
-            print("run_id", run_id)
             await self.handle_requires_action(event.data, run_id)
         elif event.event == "error":
             return cl.ErrorMessage(content=str(event.data.message)).send()
 
+    @cl.step(type="tool")
     async def handle_requires_action(self, data, run_id):
         tool_outputs = []
 
         for tool in data.required_action.submit_tool_outputs.tool_calls:
-            if tool.function.name == "get_time_now":
-                print(f"Function name: {tool.function.name}")
-                print(f"Function argument: {tool.function}")
+            current_step = cl.context.current_step
+            current_step.name = tool.function.name
 
+            if tool.function.name == "get_time_now":
                 tool_outputs.append(
                     {"tool_call_id": tool.id, "output": await get_time_now()}
+                )
+            if tool.function.name == "gmail_send_mail":
+                arguments = json.loads(tool.function.arguments)
+
+                subject = arguments["subject"]
+                cc = arguments["cc"]
+                body = arguments["body"]
+                # Parse the arguements from the tool call
+
+                tool_outputs.append(
+                    {
+                        "tool_call_id": tool.id,
+                        "output": await gmail_send_mail(subject, cc, body),
+                    }
                 )
         # Submit all tool_outputs at the same time
         await self.submit_tool_outputs(tool_outputs, run_id)
 
     async def submit_tool_outputs(self, tool_outputs, run_id):
-        print("tool_output",tool_outputs)
+
         # Use the submit_tool_outputs_stream helper
         async with async_openai_client.beta.threads.runs.submit_tool_outputs_stream(
             thread_id=self.current_run.thread_id,

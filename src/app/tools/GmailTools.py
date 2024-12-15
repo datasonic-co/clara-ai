@@ -2,42 +2,73 @@ import base64
 import mimetypes
 import os
 from email.message import EmailMessage
-from email.mime.audio import MIMEAudio
-from email.mime.base import MIMEBase
-from email.mime.image import MIMEImage
-from email.mime.text import MIMEText
 
 import google.auth
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import os.path
+
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
+import chainlit as cl
 
 load_dotenv()
 
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+GOOGLE_APPLICATION_CREDENTIAL_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIAL_FILE")
+GOOGLE_REDIRECT_URL_PORT = int(os.getenv("GOOGLE_REDIRECT_URL_PORT"))
+GOOGLE_SCOPES = os.getenv("GOOGLE_SCOPES")
+GOOGLE_TOKEN_FILE = os.getenv("GOOGLE_TOKEN_FILE")
 
-def gmail_create_draft(to, subject, body, attachment_path=None):
+
+# If modifying these scopes, delete the file token.json.
+SCOPES = [GOOGLE_SCOPES]
+
+
+async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
     """
-    Create and insert a draft email with an optional attachment.
-    
+    Create and insert and send a draft email with an optional attachment.
+
     Args:
         to (str): Recipient email address.
         sender (str): Sender email address.
         subject (str): Subject of the email.
         body (str): Body of the email.
         attachment_path (str, optional): Path to the attachment file.
-    
+
     Returns:
         dict: Draft object containing draft ID and message metadata.
     """
-    creds, _ = google.auth.default()
+    creds = None
+    # The file token.json stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists(GOOGLE_TOKEN_FILE):
+        creds = Credentials.from_authorized_user_file(GOOGLE_TOKEN_FILE, SCOPES)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                GOOGLE_APPLICATION_CREDENTIAL_FILE,
+                SCOPES,
+            )
+            creds = flow.run_local_server(port=GOOGLE_REDIRECT_URL_PORT, redirect_uri_trailing_slash=False)
+        # Save the credentials for the next run
+        with open(GOOGLE_TOKEN_FILE, "w") as token:
+            token.write(creds.to_json())
 
     try:
         service = build("gmail", "v1", credentials=creds)
         mime_message = EmailMessage()
 
         # Set email headers
-        mime_message["To"] = to
+        mime_message["To"] = "contact@datasonic.co"
+        mime_message["Cc"] = cc
         mime_message["From"] = "clara@datasonic.co"
         mime_message["Subject"] = subject
 
@@ -56,7 +87,7 @@ def gmail_create_draft(to, subject, body, attachment_path=None):
                 attachment_data,
                 maintype=maintype,
                 subtype=subtype,
-                filename=attachment_filename
+                filename=attachment_filename,
             )
 
         # Encode the message
@@ -65,30 +96,40 @@ def gmail_create_draft(to, subject, body, attachment_path=None):
         create_draft_request_body = {"message": {"raw": encoded_message}}
 
         # Create draft
-        draft = service.users().drafts().create(userId="me", body=create_draft_request_body).execute()
-        print(f'Draft created with ID: {draft["id"]}')
-        return draft
-    except HttpError as error:
-        print(f"An error occurred: {error}")
-        return None
+        draft = (
+            service.users()
+            .drafts()
+            .create(userId="me", body=create_draft_request_body)
+            .execute()
+        )
+        cl.logger.info(f'Draft created with ID: {draft["id"]}')
+        draft_id = draft["id"]
 
-def gmail_send_draft(draft_id):
-    """
-    Send a previously created draft.
-    
-    Args:
-        draft_id (str): The ID of the draft to send.
-    
-    Returns:
-        dict: Sent message object.
-    """
-    creds, _ = google.auth.default()
+        send_request = (
+            service.users().drafts().send(userId="me", body={"id": draft_id}).execute()
+        )
+        cl.logger.info(f'Email sent ID: {send_request["id"]}')
+        current_step = cl.context.current_step
+        response = f'Email with body {body} has been successfully sent with id {send_request["id"]}'
+        current_step.input = {
+            "Subject": subject,
+            "body": body,
+            "from": mime_message["From"],
+            "cc": cc,
+            "To": mime_message["To"]
+        }
 
-    try:
-        service = build("gmail", "v1", credentials=creds)
-        send_request = service.users().drafts().send(userId="me", body={"id": draft_id}).execute()
-        print(f'Draft sent with Message ID: {send_request["id"]}')
-        return send_request
+        current_step.output = {
+            "Request Id": f"Request ID {send_request['id']}",
+            "Request Labels Email ": send_request['labelIds'],
+        }
+
+        current_step.language = "json"
+        return response
+
     except HttpError as error:
-        print(f"An error occurred: {error}")
-        return None
+
+        cl.logger.error(
+            f"An error occurred when sending or creadting draft Mail {error}"
+        )
+        return str(error)
