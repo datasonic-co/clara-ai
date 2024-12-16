@@ -20,44 +20,73 @@ load_dotenv()
 
 GOOGLE_APPLICATION_CREDENTIAL_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIAL_FILE")
 GOOGLE_REDIRECT_URL_PORT = int(os.getenv("GOOGLE_REDIRECT_URL_PORT"))
-GOOGLE_SCOPES = os.getenv("GOOGLE_SCOPES")
+GOOGLE_SEND_MAIL_SCOPE = os.getenv("GOOGLE_SEND_MAIL_SCOPE")
 GOOGLE_TOKEN_FILE = os.getenv("GOOGLE_TOKEN_FILE")
+GOOGLE_PROJECT_ID = os.getenv("GOOGLE_PROJECT_ID")
+GOOGLE_JAVASCRIPT_ORIGIN = os.getenv("OAUTH_GOOGLE_AUTH_URI")
+GOOGLE_AUTH_PROVIDER_X509_CERT_URL = os.getenv("GOOGLE_AUTH_PROVIDER_X509_CERT_URL")
+OAUTH_GOOGLE_CLIENT_ID = os.getenv("OAUTH_GOOGLE_CLIENT_ID")
+OAUTH_GOOGLE_CLIENT_SECRET = os.getenv("OAUTH_GOOGLE_CLIENT_SECRET")
+OAUTH_GOOGLE_TOKEN_URI = os.getenv("OAUTH_GOOGLE_TOKEN_URI")
+OAUTH_GOOGLE_AUTH_URI = os.getenv("OAUTH_GOOGLE_AUTH_URI")
 
 
-# If modifying these scopes, delete the file token.json.
-SCOPES = [GOOGLE_SCOPES]
+# Create Format Google API Creds for Web Apps 
+google_config = {
+    "web": {
+        "client_id": OAUTH_GOOGLE_CLIENT_ID,
+        "project_id": GOOGLE_PROJECT_ID,
+        "auth_uri": OAUTH_GOOGLE_AUTH_URI,
+        "token_uri": OAUTH_GOOGLE_TOKEN_URI,
+        "auth_provider_x509_cert_url": GOOGLE_AUTH_PROVIDER_X509_CERT_URL,
+        "client_secret": OAUTH_GOOGLE_CLIENT_SECRET,
+        "javascript_origins": [GOOGLE_JAVASCRIPT_ORIGIN, "http://localhost:8000"]
+    }
+}
 
 
 async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
     """
-    Create and insert and send a draft email with an optional attachment.
+    Create and insert a draft email with an optional attachment. The draft is then sent to the recipient.
 
     Args:
-        to (str): Recipient email address.
-        sender (str): Sender email address.
-        subject (str): Subject of the email.
-        body (str): Body of the email.
-        attachment_path (str, optional): Path to the attachment file.
+        service (Resource): The authorized Gmail API service instance.
+        to (str): The email address of the recipient.
+        sender (str): The email address of the sender.
+        subject (str): The subject of the email.
+        body (str): The body content of the email.
+        attachment_path (str, optional): The file path of the attachment to be sent with the email. Defaults to None.
 
     Returns:
-        dict: Draft object containing draft ID and message metadata.
+        dict: A dictionary containing the draft ID and message metadata of the sent email.
+
+    Raises:
+        FileNotFoundError: If the attachment file is not found at the specified path.
+        Exception: For any other errors that occur during the email creation and sending process.
     """
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
     if os.path.exists(GOOGLE_TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(GOOGLE_TOKEN_FILE, SCOPES)
+        # creds = Credentials.from_authorized_user_info(info=google_config, scopes=[GOOGLE_SEND_MAIL_SCOPE])
+        creds = Credentials.from_authorized_user_file(GOOGLE_TOKEN_FILE, [GOOGLE_SEND_MAIL_SCOPE])
+        if not creds.refresh_token:  # Check for refresh_token
+                # Re-authorize or handle the error appropriately
+                cl.logger.error("Error: refresh_token is missing. Please re-authorize the application.")
+                # You can trigger the authorization flow here or exit with an error message
+    
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                GOOGLE_APPLICATION_CREDENTIAL_FILE,
-                SCOPES,
+            flow = InstalledAppFlow.from_client_config(
+                client_config= google_config,
+                scopes= [GOOGLE_SEND_MAIL_SCOPE]
             )
             creds = flow.run_local_server(port=GOOGLE_REDIRECT_URL_PORT, redirect_uri_trailing_slash=False)
+
         # Save the credentials for the next run
         with open(GOOGLE_TOKEN_FILE, "w") as token:
             token.write(creds.to_json())
