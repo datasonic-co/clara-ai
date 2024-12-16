@@ -31,7 +31,7 @@ OAUTH_GOOGLE_TOKEN_URI = os.getenv("OAUTH_GOOGLE_TOKEN_URI")
 OAUTH_GOOGLE_AUTH_URI = os.getenv("OAUTH_GOOGLE_AUTH_URI")
 
 
-# Create Format Google API Creds for Web Apps 
+# Create Format Google API Creds for Web Apps
 google_config = {
     "web": {
         "client_id": OAUTH_GOOGLE_CLIENT_ID,
@@ -40,7 +40,7 @@ google_config = {
         "token_uri": OAUTH_GOOGLE_TOKEN_URI,
         "auth_provider_x509_cert_url": GOOGLE_AUTH_PROVIDER_X509_CERT_URL,
         "client_secret": OAUTH_GOOGLE_CLIENT_SECRET,
-        "javascript_origins": [GOOGLE_JAVASCRIPT_ORIGIN, "http://localhost:8000"]
+        "javascript_origins": [GOOGLE_JAVASCRIPT_ORIGIN, "http://localhost:8000"],
     }
 }
 
@@ -70,22 +70,29 @@ async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
     # time.
     if os.path.exists(GOOGLE_TOKEN_FILE):
         # creds = Credentials.from_authorized_user_info(info=google_config, scopes=[GOOGLE_SEND_MAIL_SCOPE])
-        creds = Credentials.from_authorized_user_file(GOOGLE_TOKEN_FILE, [GOOGLE_SEND_MAIL_SCOPE])
+        creds = Credentials.from_authorized_user_file(
+            GOOGLE_TOKEN_FILE, [GOOGLE_SEND_MAIL_SCOPE]
+        )
         if not creds.refresh_token:  # Check for refresh_token
-                # Re-authorize or handle the error appropriately
-                cl.logger.error("Error: refresh_token is missing. Please re-authorize the application.")
-                # You can trigger the authorization flow here or exit with an error message
-    
+            # Re-authorize or handle the error appropriately
+            cl.logger.error(
+                "Error: refresh_token is missing. Please re-authorize the application."
+            )
+            # You can trigger the authorization flow here or exit with an error message
+
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_config(
-                client_config= google_config,
-                scopes= [GOOGLE_SEND_MAIL_SCOPE]
+                client_config=google_config, scopes=[GOOGLE_SEND_MAIL_SCOPE]
             )
-            creds = flow.run_local_server(port=GOOGLE_REDIRECT_URL_PORT, redirect_uri_trailing_slash=False)
+            creds = flow.run_local_server(
+                port=GOOGLE_REDIRECT_URL_PORT,
+                redirect_uri_trailing_slash=False,
+                open_browser=False,
+            )
 
         # Save the credentials for the next run
         with open(GOOGLE_TOKEN_FILE, "w") as token:
@@ -145,12 +152,12 @@ async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
             "body": body,
             "from": mime_message["From"],
             "cc": cc,
-            "To": mime_message["To"]
+            "To": mime_message["To"],
         }
 
         current_step.output = {
             "Request Id": f"Request ID {send_request['id']}",
-            "Request Labels Email ": send_request['labelIds'],
+            "Request Labels Email ": send_request["labelIds"],
         }
 
         current_step.language = "json"
