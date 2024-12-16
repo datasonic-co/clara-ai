@@ -90,7 +90,7 @@ async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
             )
             creds = flow.run_local_server(
                 port=GOOGLE_REDIRECT_URL_PORT,
-                host=GOOGLE_JAVASCRIPT_ORIGIN
+                host=GOOGLE_JAVASCRIPT_ORIGIN,
                 redirect_uri_trailing_slash=False,
                 # open_browser=True,
                 authorization_prompt_message="Please visit this URL: {GOOGLE_JAVASCRIPT_ORIGIN}",
