@@ -92,6 +92,7 @@ async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
                 port=GOOGLE_REDIRECT_URL_PORT,
                 redirect_uri_trailing_slash=False,
                 open_browser=False,
+                bind_addr="0.0.0.0"
             )
 
         # Save the credentials for the next run
