@@ -32,6 +32,9 @@ assistant = sync_openai_client.beta.assistants.retrieve(
     os.environ.get("OPENAI_ASSISTANT_ID")
 )
 
+assistant = sync_openai_client.beta.assistants.retrieve(
+    os.environ.get("OPENAI_ASSISTANT_ID")
+)
 GLADIA_API_URL = os.environ.get("GLADIA_API_URL")
 GLADIA_API_KEY = os.environ.get("GLADIA_API_KEY")
 
@@ -78,6 +81,17 @@ async def generate_text_answer(transcription):
             assistant_id=assistant.id,
             event_handler=EventHandler(assistant_name=assistant.name),
         ) as stream:
+            return (
+                "Error: No active conversation thread found. Please restart the chat."
+            )
+        response = await async_openai_client.beta.threads.messages.create(
+            thread_id=openai_thread_id, role="user", content=transcription
+        )
+        async with async_openai_client.beta.threads.runs.stream(
+            thread_id=openai_thread_id,
+            assistant_id=assistant.id,
+            event_handler=EventHandler(assistant_name=assistant.name),
+        ) as stream:
             final_response = await stream.get_final_messages()
             return final_response[0].content[0].text.value
         # return await text_to_speech(final_response[0].content[0].text.value)
@@ -87,10 +101,12 @@ async def generate_text_answer(transcription):
         return "I'm sorry, I couldn't generate a response at this time."
 
 
-
 @cl.step(type="tool")
 async def speech_to_text(audio_file):
     try:
+        response = await async_openai_client.audio.transcriptions.create(
+            model="whisper-1", file=audio_file
+        )
         response = await async_openai_client.audio.transcriptions.create(
             model="whisper-1", file=audio_file
         )
@@ -98,58 +114,6 @@ async def speech_to_text(audio_file):
     except Exception as e:
         cl.logger.error(f"Speech-to-Text failed: {e}")
         return "Sorry, I couldn't process the audio."
-
-
-# @cl.step(type="tool")
-# async def speech_to_text(audio_input):
-
-#     try:
-#         headers = {"x-gladia-key": f"{GLADIA_API_KEY}"}
-#         files = {
-#             "audio": (
-#                 "input_audio.wav",
-#                 audio_input,
-#                 "audio/wav",
-#             ),
-#         }
-
-#         upload_response = make_request(
-#             f"{GLADIA_API_URL}/upload", headers, "POST", files=files
-#         )
-
-#         audio_url = upload_response.get("audio_url")
-#         data = {
-#             "audio_url": audio_url,
-#             "diarization": True,
-#         }
-#         headers["Content-Type"] = "application/json"
-#         post_response = make_request(
-#             f"{GLADIA_API_URL}/transcription/", headers, "POST", data=data
-#         )
-#         result_url = post_response.get("result_url")
-
-#         if result_url:
-#             while True:
-#                 cl.logger.info(f"Polling for results...")
-#                 poll_response = make_request(result_url, headers)
-#                 if poll_response.get("status") == "done":
-#                     cl.logger.info(
-#                         f"- Transcription done: {poll_response.get('result')}"
-#                     )
-#                     return poll_response.get("result")["transcription"][
-#                         "full_transcript"
-#                     ]
-#                 elif poll_response.get("status") == "error":
-#                     cl.logger.error(f"- Transcription failed: {poll_response}")
-#                 else:
-#                     cl.logger.debug(
-#                         f"- Transcription status: {poll_response.get('status')}"
-#                     )
-#                 sleep(5)
-#         print("- End of work")
-#     except Exception as e:
-#         cl.logger.error(f"Speech-to-Text failed: {e}")
-#         return "Sorry, I couldn't process the audio."
 
 
 @cl.step(type="tool")
@@ -171,8 +135,25 @@ async def text_to_speech(text):
             elements=[output_audio],
         ).send()
 
+        response = await async_openai_client.audio.speech.create(
+            model="tts-1", voice="nova", input=text
+        )
+        audio_mime_type = cl.user_session.get("audio_mime_type")
+        output_audio = cl.Audio(
+            mime=audio_mime_type, content=response.read(), auto_play=True
+        )
+        return await cl.Message(
+            author="assistant",
+            type="assistant_message",
+            content="",
+            elements=[output_audio],
+        ).send()
     except Exception as e:
         cl.logger.error(f"Text-to-Speech failed: {e}")
+        return await cl.Message(
+            content="Sorry, I couldn't convert the text to audio."
+        ).update()
+
         return await cl.Message(
             content="Sorry, I couldn't convert the text to audio."
         ).update()
@@ -184,6 +165,9 @@ async def upload_files(files: List[Element]):
         uploaded_file = await async_openai_client.files.create(
             file=Path(file.path), purpose="assistants"
         )
+        uploaded_file = await async_openai_client.files.create(
+            file=Path(file.path), purpose="assistants"
+        )
         file_ids.append(uploaded_file.id)
     return file_ids
 
@@ -192,6 +176,23 @@ async def process_files(files: List[Element]):
     file_ids = []
     if len(files) > 0:
         file_ids = await upload_files(files)
+    return [
+        {
+            "file_id": file_id,
+            "tools": (
+                [{"type": "code_interpreter"}, {"type": "file_search"}]
+                if file.mime
+                in [
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "text/markdown",
+                    "application/pdf",
+                    "text/plain",
+                ]
+                else [{"type": "code_interpreter"}]
+            ),
+        }
+        for file_id, file in zip(file_ids, files)
+    ]
 
     return [
         {
@@ -233,20 +234,98 @@ async def start_chat():
             "fr-FR": "Bonjour ! Je suis ✨Clara✨, la secrétaire de Fakher. Je suis là pour vous aider. C'est à vous ! 😊",
             # Add more languages here as needed
         }
+
+        original_actions = [
+            {
+                "en-US": {
+                    "name": "Professional experience",
+                    "value": "What is his professional experience and career history?",
+                    "description": "What is his professional experience and career history?",
+                },
+                "fr-FR": {
+                    "name": "Expériences professionnelles",
+                    "value": "Quelle est votre expérience professionnelle et votre parcours professionnel?",
+                    "description": "Quelle est votre expérience professionnelle et votre parcours professionnel?",
+                },
+            },
+            {
+                "en-US": {
+                    "name": "Skills",
+                    "value": "What are his key skills and qualifications?",
+                    "description": "What are his key skills and qualifications?",
+                },
+                "fr-FR": {
+                    "name": "Compétences clés",
+                    "value": "Quelles sont ses compétences clés et ses qualifications?",
+                    "description": "Quelles sont ses compétences clés et ses qualifications?",
+                },
+            },
+            {
+                "en-US": {
+                    "name": "Significant achievement",
+                    "value": "Can you describe a significant achievement or project in sa career?",
+                    "description": "Can you describe a significant achievement or project in your career?",
+                },
+                "fr-FR": {
+                    "name": "Réalisations",
+                    "value": "Pouvez-vous décrire une réalisation ou un projet significatif dans sa carrière?",
+                    "description": "Pouvez-vous décrire une réalisation ou un projet significatif dans sa carrière?",
+                },
+            },
+            {
+                "en-US": {
+                    "name": "Certifications",
+                    "value": "What are his certifications and professional qualifications?",
+                    "description": "What are his certifications and professional qualifications?",
+                },
+                "fr-FR": {
+                    "name": "Certifications",
+                    "value": "Quels sont ses certifications professionnelles?",
+                    "description": "Quels sont ses certifications professionnelles?",
+                },
+            },
+            {
+                "en-US": {
+                    "name": "Passions",
+                    "value": "What are his passions?",
+                    "description": "What are your passions?",
+                },
+                "fr-FR": {
+                    "name": "Passions",
+                    "value": "Quelles sont ses passions?",
+                    "description": "Quelles sont ses passions?",
+                },
+            },
+        ]
+
+        welcome_messages = {
+            "en-US": "Hi there! I’m ✨Clara✨, Fakher’s AI assistant. I’m here to assist you. Feel free to ask anything about his profile. Over to you! 😊",
+            "fr-FR": "Bonjour ! Je suis ✨Clara✨, l'assistante IA de Fakher. Je suis là pour vous aider. C'est à vous ! 😊",
+        }
         text_content = welcome_messages.get(user_language, welcome_messages["fr-FR"])
 
-        image = cl.Image(path="public/clara.png", name="Logo", size="small")
-        await cl.Message(
-            content=text_content,
-            elements=[image],
-        ).send()
+        actions = [
+            cl.Action(
+                name=action.get(user_language, action["en-US"])["name"],
+                value=action.get(user_language, action["en-US"])["value"],
+                description=action.get(user_language, action["en-US"])["description"],
+            )
+            for action in original_actions
+        ]
+
+        # image = cl.Image(path="public/clara.png", name="Logo", size="small")
+        await cl.Message(content=text_content, actions=actions).send()
+        # Register action callbacks
+        for action in original_actions:
+            @cl.action_callback(action.get(user_language, action["en-US"])["name"])
+            async def on_action(action):
+                await send_message(cl.Message(author="user", content=action.value))
 
     except Exception as e:
         cl.logger.error(f"Failed to create threads: {e}")
         await cl.Message(
             content="Sorry, I couldn't start the chat session. Please try again later."
         ).send()
-
 
 @cl.on_audio_chunk
 async def on_audio_chunk(chunk: cl.AudioChunk):
@@ -277,17 +356,14 @@ async def on_audio_end(elements: list[ElementBased]):
             await cl.Message(content="Session expired. Starting a new chat.").send()
             openai_thread_id = cl.user_session.get("openai_thread_id")
             literalai_thread_id = cl.user_session.get("literalai_thread_id")
-
         cl.logger.info(
             f"Processing Audio Message for OpenAI Thread ID: {openai_thread_id} and LiteralAI Thread ID: {literalai_thread_id}"
         )
         with literalai_client.thread(
             name=literalai_thread_id, thread_id=literalai_thread_id
         ) as thread:
-
-            # Get the audio buffer from the session
-            audio_buffer: BytesIO = cl.user_session.get("audio_buffer")
-            audio_buffer.seek(0)  # Move the file pointer to the beginning
+            audio_buffer = cl.user_session.get("audio_buffer")
+            audio_buffer.seek(0)
             audio_file = audio_buffer.read()
             audio_mime_type: str = cl.user_session.get("audio_mime_type")
 
@@ -333,6 +409,10 @@ async def stop_chat():
 
 @cl.on_message
 async def main(message: cl.Message):
+    await send_message(message)
+
+@cl.step(type="tool", name="Send Message")
+async def send_message(message: cl.Message):
     try:
         openai_thread_id = cl.user_session.get("openai_thread_id")
         literalai_thread_id = cl.user_session.get("literalai_thread_id")

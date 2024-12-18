@@ -19,7 +19,7 @@ Need guidance? Check out the [User Guide](#) or visit the [FAQ](#) section.
 
 ## 📞 Contact Us
 
-Have questions or feedback? Reach out at [support@datasonic.co](mailto:fakher.hannafi@datasonic.co).
+Have questions or feedback? Reach out at [support@datasonic.co](mailto:contact@datasonic.co).
 
 ---
 

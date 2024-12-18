@@ -19,7 +19,7 @@ Besoin d'aide ? Consultez le [Guide de l'Utilisateur](#) ou visitez la section [
 
 ## 📞 Contactez-nous
 
-Vous avez des questions ou des commentaires ? Contactez-nous à [support@datasonic.co](mailto:fakher.hannafi@datasonic.co).
+Vous avez des questions ou des commentaires ? Contactez-nous à [support@datasonic.co](mailto:contact@datasonic.co).
 
 ---
 
