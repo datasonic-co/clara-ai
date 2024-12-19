@@ -120,7 +120,7 @@ async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
                 port=0,
                 # host=GOOGLE_JAVASCRIPT_ORIGIN,
                 # redirect_uri_trailing_slash=False,
-                # open_browser=False,
+                open_browser=False,
                 # authorization_prompt_message="Please visit this URL: {GOOGLE_JAVASCRIPT_ORIGIN}",
                 # success_message="The auth flow is complete; you may close this window.",
             )
