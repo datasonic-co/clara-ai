@@ -38,7 +38,6 @@ class EventHandler(AsyncAssistantEventHandler):
     async def on_text_done(self, text):
         await self.current_message.update()
         if text.annotations:
-            print(text.annotations)
             for annotation in text.annotations:
                 if annotation.type == "file_path":
                     response = (
@@ -117,7 +116,7 @@ class EventHandler(AsyncAssistantEventHandler):
         elif event.event == "error":
             return cl.ErrorMessage(content=str(event.data.message)).send()
 
-    @cl.step(type="tool")
+    @cl.step(type="tool", name="function handler")
     async def handle_requires_action(self, data, run_id):
         tool_outputs = []
 

@@ -55,7 +55,7 @@ def make_request(url, headers, method="GET", data=None, files=None):
     return response.json()
 
 
-@cl.step(type="tool")
+@cl.step(type="tool", name="Thinking...")
 async def generate_text_answer(transcription):
     try:
         # Retrieve the OpenAI thread ID from the user session
@@ -81,27 +81,15 @@ async def generate_text_answer(transcription):
             assistant_id=assistant.id,
             event_handler=EventHandler(assistant_name=assistant.name),
         ) as stream:
-            return (
-                "Error: No active conversation thread found. Please restart the chat."
-            )
-        response = await async_openai_client.beta.threads.messages.create(
-            thread_id=openai_thread_id, role="user", content=transcription
-        )
-        async with async_openai_client.beta.threads.runs.stream(
-            thread_id=openai_thread_id,
-            assistant_id=assistant.id,
-            event_handler=EventHandler(assistant_name=assistant.name),
-        ) as stream:
             final_response = await stream.get_final_messages()
             return final_response[0].content[0].text.value
-        # return await text_to_speech(final_response[0].content[0].text.value)
 
     except Exception as e:
         cl.logger.error(f"Failed to generate text answer: {e}")
         return "I'm sorry, I couldn't generate a response at this time."
 
 
-@cl.step(type="tool")
+@cl.step(type="tool", name="Transcribing...")
 async def speech_to_text(audio_file):
     try:
         response = await async_openai_client.audio.transcriptions.create(
@@ -116,7 +104,7 @@ async def speech_to_text(audio_file):
         return "Sorry, I couldn't process the audio."
 
 
-@cl.step(type="tool")
+@cl.step(type="tool", name="Converting Text to Audio...")
 async def text_to_speech(text):
     try:
         # Convert text to speech using OpenAI TTS
@@ -231,7 +219,7 @@ async def start_chat():
         # Display a welcome message to the user
         welcome_messages = {
             "en-US": "Hi there! I’m ✨Clara✨, Fakher’s secretary. I’m here to assist you. Feel free to ask anything about him. Over to you! 😊",
-            "fr-FR": "Bonjour ! Je suis ✨Clara✨, la secrétaire de Fakher. Je suis là pour vous aider. C'est à vous ! 😊",
+            "fr-FR": "Bonjour ! Je suis ✨Clara✨, la secrétaire de Fakher. Je suis là pour répondre à vos questions concernant son profil. C'est à vous ! 😊",
             # Add more languages here as needed
         }
 
@@ -315,11 +303,14 @@ async def start_chat():
 
         # image = cl.Image(path="public/clara.png", name="Logo", size="small")
         await cl.Message(content=text_content, actions=actions).send()
+
         # Register action callbacks
         for action in original_actions:
-            @cl.action_callback(action.get(user_language, action["en-US"])["name"])
-            async def on_action(action):
-                await send_message(cl.Message(author="user", content=action.value))
+            action_obj= action.get(user_language, action["en-US"])
+            @cl.action_callback(action_obj["name"])
+            @cl.step(type="tool", name=f"Let me search for {action_obj['name']}...")
+            async def on_action(action_obj):
+                await send_message(cl.Message(author="user", content=action_obj.value))
 
     except Exception as e:
         cl.logger.error(f"Failed to create threads: {e}")
@@ -371,14 +362,14 @@ async def on_audio_end(elements: list[ElementBased]):
 
             # Transcribe the audio
             transcription = await speech_to_text(audio_input)
-            cl.logger.info(f"Transcription: {transcription}")
+            cl.logger.debug(f"Transcription: {transcription}")
 
             # images = [file for file in elements if "image" in file.mime]
 
             # Generate text answer from transcription
             text_answer = await generate_text_answer(transcription)
 
-            cl.logger.info(f"Text Answer: {text_answer}")
+            cl.logger.debug(f"Text Answer: {text_answer}")
             # Convert response to audio and send to the user
             await text_to_speech(text_answer)
 
@@ -411,7 +402,7 @@ async def stop_chat():
 async def main(message: cl.Message):
     await send_message(message)
 
-@cl.step(type="tool", name="Send Message")
+
 async def send_message(message: cl.Message):
     try:
         openai_thread_id = cl.user_session.get("openai_thread_id")

@@ -15,6 +15,8 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
 import chainlit as cl
+import dns.resolver
+import re
 
 load_dotenv()
 
@@ -45,6 +47,29 @@ google_config = {
 }
 
 
+
+def verified_email_domain(email):
+    """
+    Checks if the domain of an email address has a valid MX record.
+
+    Args:
+      email: The email address to check.
+
+    Returns:
+      True if the domain has an MX record, False otherwise.
+    """
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    if not re.match(pattern, email):
+        return False
+
+    domain = email.split("@")[1]
+    try:
+        dns.resolver.resolve(domain, "MX")
+        return True
+    except dns.resolver.NXDOMAIN:
+        return False
+
+
 async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
     """
     Create and insert a draft email with an optional attachment. The draft is then sent to the recipient.
@@ -64,6 +89,9 @@ async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
         FileNotFoundError: If the attachment file is not found at the specified path.
         Exception: For any other errors that occur during the email creation and sending process.
     """
+    if not verified_email_domain(cc):
+        return f"Carbon Copy Email {cc} is Invalid, please verify your email or domain"
+    
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -94,7 +122,7 @@ async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
                 redirect_uri_trailing_slash=False,
                 # open_browser=True,
                 authorization_prompt_message="Please visit this URL: {GOOGLE_JAVASCRIPT_ORIGIN}",
-                success_message="The auth flow is complete; you may close this window."
+                success_message="The auth flow is complete; you may close this window.",
             )
 
         # Save the credentials for the next run
