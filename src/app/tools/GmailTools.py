@@ -117,12 +117,12 @@ async def gmail_send_mail(subject, cc, body, attachment_path=None) -> str:
                 client_config=google_config, scopes=[GOOGLE_SEND_MAIL_SCOPE]
             )
             creds = flow.run_local_server(
-                port=GOOGLE_REDIRECT_URL_PORT,
+                port=0,
                 # host=GOOGLE_JAVASCRIPT_ORIGIN,
                 # redirect_uri_trailing_slash=False,
-                open_browser=False,
-                authorization_prompt_message="Please visit this URL: {GOOGLE_JAVASCRIPT_ORIGIN}",
-                success_message="The auth flow is complete; you may close this window.",
+                # open_browser=False,
+                # authorization_prompt_message="Please visit this URL: {GOOGLE_JAVASCRIPT_ORIGIN}",
+                # success_message="The auth flow is complete; you may close this window.",
             )
 
         # Save the credentials for the next run
